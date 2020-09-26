@@ -1,4 +1,6 @@
 job "test" {
+  datacenters = ["spain"]
+  type = "service"
   group "test" {
     count = 3
 
@@ -12,13 +14,9 @@ job "test" {
         }
       }
 
-      logs {
-        max_files     = 5
-        max_file_size = 15
-      }
       resources {
         cpu    = 200 # MHz
-        memory = 64 # MB
+        memory = 32 # MB
 
         network {
           mbits = 10
@@ -27,7 +25,7 @@ job "test" {
       }
       service {
         name = "nginx"
-        tags = ["global", "test"]
+        tags = ["urlprefix-/"]
         port = "db"
 
         check {
@@ -38,26 +36,5 @@ job "test" {
         }
       }
     }
-    restart {
-      attempts = 10
-      interval = "5m"
-      delay = "25s"
-      mode = "delay"
-    }
-
-    ephemeral_disk {
-      size = 100
-    }
-  }
-
-  datacenters = ["spain"]
-  type = "service"
-
-  update {
-    max_parallel = 1
-    min_healthy_time = "5s"
-    healthy_deadline = "3m"
-    auto_revert = false
-    canary = 0
   }
 }
