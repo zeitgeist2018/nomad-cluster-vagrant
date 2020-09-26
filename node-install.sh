@@ -1,5 +1,17 @@
 #!/bin/bash
-# Update the apt packages and get a couple of basic tools
+
+# Prepare env variables
+cat <<EOF > $HOME/.bash_profile
+export NODE_NUMBER="$1"
+export HOST="$2"
+export NODE_NAME="$2"
+export NODE_IP="$3"
+export SERVERS_IPS="$3"
+export SERVER_COUNT="$4"
+EOF
+
+
+# Install basic packages
 sudo apt-get update -y
 sudo apt-get install unzip curl vim jq -y
 # make an archive folder to move old binaries into
@@ -7,7 +19,7 @@ if [ ! -d /tmp/archive ]; then
   sudo mkdir /tmp/archive/
 fi
 
-# Install Docker Community Edition
+# Install Docker
 echo "Docker Install Beginning..."
 sudo apt-get remove docker docker-engine docker.io
 sudo apt-get install apt-transport-https ca-certificates curl software-properties-common -y
@@ -23,7 +35,7 @@ sudo service docker restart
 sudo usermod -aG docker vagrant
 sudo docker --version
 
-echo "Nomad Install Beginning..."
+# Install Nomad
 NOMAD_VERSION=0.9.5
 cd /tmp/
 sudo curl -sSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad.zip
@@ -39,11 +51,10 @@ fi
 sudo mv /tmp/nomad /tmp/archive/nomad
 sudo mkdir -p /etc/nomad.d
 sudo chmod a+w /etc/nomad.d
-sudo cp /vagrant/nomad-server-config.hcl /etc/nomad.d/
-echo "NOMAD INSTALLED"
 nomad version
 
-echo "Consul Install Beginning..."
+
+# Install Consul
 CONSUL_VERSION=1.8.4
 sudo curl -sSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip > consul.zip
 if [ ! -d consul ]; then
@@ -58,11 +69,11 @@ fi
 sudo mv /tmp/consul /tmp/archive/consul
 sudo mkdir -p /etc/consul.d
 sudo chmod a+w /etc/consul.d
-sudo cp /vagrant/consul-server-config.hcl /etc/consul.d/
 
+
+# Finish installation
 for bin in cfssl cfssl-certinfo cfssljson
 do
-  echo "$bin Install Beginning..."
   if [ ! -f /tmp/${bin} ]; then
     curl -sSL https://pkg.cfssl.org/R1.2/${bin}_linux-amd64 > /tmp/${bin}
   fi
@@ -77,29 +88,50 @@ if [ $retval -eq 1 ]; then
 fi
 
 
+# Stop dnsmasq, so port 53 is free for consul to use
+sudo systemctl stop dnsmasq
 
-
-
-
-
-cd $HOME
 
 # Form Consul Cluster
-ps -C consul
-retval=$?
-if [ $retval -eq 0 ]; then
-  sudo killall consul
-fi
-sudo cp /vagrant/consul-server-config.hcl /etc/consul.d/consul-server-config.hcl
-echo "STARTING CONSUL AGENT"
-sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.hcl &>$HOME/consul.log &
+cat << EOF | sudo tee /etc/consul.d/consul-server-config.json
+{
+"data_dir": "/tmp/consul/server",
+"server": true,
+"bootstrap_expect": $SERVER_COUNT,
+"advertise_addr": "{{ GetInterfaceIP \`eth1\` }}",
+"client_addr": "0.0.0.0",
+"ui": true,
+"datacenter": "spain",
+"ports": { "dns": 53 },
+"retry_join": ["192.168.1.201", "192.168.1.202", "192.168.1.203"]
+}
+EOF
+sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.json &>$HOME/consul.log &
 
 # Form Nomad Cluster
-ps -C nomad
-retval=$?
-if [ $retval -eq 0 ]; then
-  sudo killall nomad
-fi
-sudo cp /vagrant/nomad-server-config.hcl /etc/nomad.d/nomad-server-config.hcl
-echo "STARTING NOMAD AGENT"
+cat <<EOF | sudo tee /etc/nomad.d/nomad-server-config.hcl
+data_dir = "/tmp/nomad/server"
+server {
+  enabled          = true
+  bootstrap_expect = $SERVER_COUNT
+  job_gc_threshold = "2m"
+}
+datacenter = "spain"
+region = "east"
+advertise {
+  http = "{{ GetInterfaceIP \`eth1\` }}"
+  rpc  = "{{ GetInterfaceIP \`eth1\` }}"
+  serf = "{{ GetInterfaceIP \`eth1\` }}"
+}
+plugin "raw_exec" {
+  config {
+    enabled = true
+  }
+}
+client {
+  enabled           = true
+  network_interface = "eth1"
+  servers           = ["192.168.1.201", "192.168.1.202", "192.168.1.203"]
+}
+EOF
 sudo nohup nomad agent -config /etc/nomad.d/nomad-server-config.hcl &>$HOME/nomad.log &
