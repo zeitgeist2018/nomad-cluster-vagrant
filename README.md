@@ -10,5 +10,5 @@ This enables full capabilities of Consul's DNS server.
 1. Clone this repository
 2. Execute `vagrant up` 
 3. These URL's will be ready after a few minutes:
-    * Nomad's UI: http://172.16.1.101:4646/
-    * Consul's UI: http://172.16.1.101:8500/
+    * Nomad's UI: http://192.168.1.201:4646/
+    * Consul's UI: http://192.168.1.201:8500/
