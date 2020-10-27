@@ -1,14 +1,12 @@
 #!/bin/bash
 
 # Prepare env variables
-cat <<EOF > $HOME/.bash_profile
-export NODE_NUMBER="$1"
-export HOST="$2"
-export NODE_NAME="$2"
-export NODE_IP="$3"
-export SERVERS_IPS="$3"
-export SERVER_COUNT="$4"
-EOF
+export NODE_NUMBER="$1" && echo "NODE_NUMBER=$NODE_NUMBER"
+export HOST="$2" && echo "HOST=$HOST"
+export NODE_NAME="$2" && echo "NODE_NAME=$NODE_NAME"
+export NODE_IP="$3" && echo "NODE_IP=$NODE_IP"
+export SERVERS_IPS="$4" && echo "SERVERS_IPS=$SERVERS_IPS"
+export SERVER_COUNT="$5" && echo "SERVER_COUNT=$SERVER_COUNT"
 
 
 # Install basic packages
@@ -97,7 +95,7 @@ cat << EOF | sudo tee /etc/consul.d/consul-server-config.json
 {
 "data_dir": "/tmp/consul/server",
 "server": true,
-"bootstrap_expect": $SERVER_COUNT,
+"bootstrap_expect": ${SERVER_COUNT},
 "advertise_addr": "{{ GetInterfaceIP \`eth1\` }}",
 "client_addr": "0.0.0.0",
 "ui": true,
@@ -113,7 +111,7 @@ cat <<EOF | sudo tee /etc/nomad.d/nomad-server-config.hcl
 data_dir = "/tmp/nomad/server"
 server {
   enabled          = true
-  bootstrap_expect = $SERVER_COUNT
+  bootstrap_expect = ${SERVER_COUNT}
   job_gc_threshold = "2m"
 }
 datacenter = "spain"
