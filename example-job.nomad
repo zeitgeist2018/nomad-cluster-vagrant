@@ -25,7 +25,7 @@ job "test" {
       }
       service {
         name = "nginx"
-        tags = ["urlprefix-/"]
+        tags = ["frontend-/test"]
         port = "db"
 
         check {
