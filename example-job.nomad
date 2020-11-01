@@ -1,10 +1,10 @@
-job "test" {
+job "test-job" {
   datacenters = ["spain"]
   type = "service"
-  group "test" {
-    count = 3
+  group "test-group" {
+    count = 6
 
-    task "nginx" {
+    task "test-task" {
       driver = "docker"
       config {
         image = "nginx:latest"
@@ -15,18 +15,20 @@ job "test" {
       }
 
       resources {
-        cpu    = 200 # MHz
+        cpu    = 100 # MHz
         memory = 32 # MB
 
         network {
           mbits = 10
-          port  "db"  {}
+          port  "http"  {}
         }
       }
       service {
-        name = "nginx"
-        tags = ["frontend-/test"]
-        port = "db"
+        name = "test-service"
+        port = "http"
+        meta {
+          frontend = "nginx"
+        }
 
         check {
           name     = "alive"
