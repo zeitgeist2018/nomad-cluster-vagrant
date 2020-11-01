@@ -132,10 +132,47 @@ client {
 }
 EOF
 
-sudo nohup nomad agent -config /etc/nomad.d/nomad-server-config.hcl &>$HOME/nomad.log &
-sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.json &>$HOME/consul.log &
+sudo mkdir -p /var/log/nomad
 
-cat <<EOF | sudo tee /etc/init.d/nomad-start.sh
-sudo nohup nomad agent -config /etc/nomad.d/nomad-server-config.hcl &>$HOME/nomad.log &
-sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.json &>$HOME/consul.log &
+cat <<EOF | tee nomad.service
+[Unit]
+Description="Nomad service"
+[Service]
+User=root
+Group=root
+Type=simple
+ExecStart=/usr/bin/sudo nomad agent -config /etc/nomad.d/nomad-server-config.hcl
+StandardOutput=append:/var/log/nomad/nomad.log
+StandardError=append:/var/log/nomad/nomad-error.log
+[Install]
+WantedBy=multi-user.target
 EOF
+
+cat <<EOF | tee consul.service
+[Unit]
+Description="Consul service"
+[Service]
+User=root
+Group=root
+Type=simple
+ExecStart=/usr/bin/sudo consul agent --config-file /etc/consul.d/consul-server-config.json
+StandardOutput=append:/var/log/nomad/consul.log
+StandardError=append:/var/log/nomad/consul-error.log
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo mv *.service /etc/systemd/system/
+for service in nomad consul
+do
+  sudo chmod 755 /etc/systemd/system/${service}.service
+  sudo chown root:root /etc/systemd/system/${service}.service
+done
+
+sudo systemctl daemon-reload
+
+for service in nomad consul
+do
+  sudo systemctl enable ${service}.service
+  sudo systemctl start ${service}
+done
