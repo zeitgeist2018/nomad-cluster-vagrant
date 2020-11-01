@@ -34,7 +34,7 @@ sudo usermod -aG docker vagrant
 sudo docker --version
 
 # Install Nomad
-NOMAD_VERSION=0.11.6
+NOMAD_VERSION=1.0.0-beta2
 cd /tmp/
 sudo curl -sSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad.zip
 if [ ! -d nomad ]; then
@@ -53,7 +53,7 @@ nomad version
 
 
 # Install Consul
-CONSUL_VERSION=1.8.5
+CONSUL_VERSION=1.9.0-beta1
 sudo curl -sSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip > consul.zip
 if [ ! -d consul ]; then
   sudo unzip /tmp/consul.zip
