@@ -104,7 +104,6 @@ cat << EOF | sudo tee /etc/consul.d/consul-server-config.json
 "retry_join": ["192.168.1.201", "192.168.1.202", "192.168.1.203"]
 }
 EOF
-sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.json &>$HOME/consul.log &
 
 # Form Nomad Cluster
 cat <<EOF | sudo tee /etc/nomad.d/nomad-server-config.hcl
@@ -132,4 +131,11 @@ client {
   servers           = ["192.168.1.201", "192.168.1.202", "192.168.1.203"]
 }
 EOF
+
 sudo nohup nomad agent -config /etc/nomad.d/nomad-server-config.hcl &>$HOME/nomad.log &
+sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.json &>$HOME/consul.log &
+
+cat <<EOF | sudo tee /etc/init.d/nomad-start.sh
+sudo nohup nomad agent -config /etc/nomad.d/nomad-server-config.hcl &>$HOME/nomad.log &
+sudo nohup consul agent --config-file /etc/consul.d/consul-server-config.json &>$HOME/consul.log &
+EOF
