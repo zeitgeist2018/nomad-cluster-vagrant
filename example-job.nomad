@@ -10,7 +10,7 @@ job "test-job" {
         image = "nginx:latest"
 
         port_map {
-          db = 80
+          http = 80
         }
       }
 
